@@ -8,6 +8,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using CsTask.Data;
 using System.Reflection;
 using Newtonsoft.Json;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace CsTask
 {
@@ -128,15 +130,19 @@ namespace CsTask
 		private static void LoadFiles()
 		{
 			var taskFiles = Directory.GetFiles(CurrentDirectory, "*.csx");
-			foreach (var file in taskFiles)
+			ConcurrentBag<CsTaskFile> cBag = new ConcurrentBag<CsTaskFile>();
+
+			Parallel.ForEach(taskFiles, file =>
 			{
-				Files.Add(new CsTaskFile(file));
-			}
+				cBag.Add(new CsTaskFile(file));
+			});
+
+			Files = cBag.ToList();
 		}
 
 		private static CompiledFile CompileAssembly()
 		{
-			string joinedCode = string.Join(Environment.NewLine, Files.Select(x => x.RawCode));
+			string joinedCode = string.Join(Environment.NewLine, Files.Select(x => x.Code));
 			return CodeReader.Read(joinedCode, out string rawCode);
 		}
 

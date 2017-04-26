@@ -18,7 +18,6 @@ namespace CsTask.Data
 		public string Path { get; set; }
 		public string Name { get; set; }
 		public string Code { get; set; }
-		public string RawCode { get; set; }
 
 		public SyntaxTree Syntax { get; set; }
 
@@ -29,7 +28,7 @@ namespace CsTask.Data
 			Code = File.ReadAllText(path);
 
 			CodeReader.Read(Code, out string rawCode);
-			RawCode = rawCode;
+			Code = rawCode;
 		}
 
 	}
