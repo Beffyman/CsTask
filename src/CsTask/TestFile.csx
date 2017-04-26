@@ -1,4 +1,8 @@
-﻿
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Runtime;
+
+
 //Base Members
 
 public void TestPublicMethodInstance()
@@ -73,4 +77,19 @@ LOL
 {F}
 ";
 	return literalFormattedString;
+}
+
+
+//Linq Test
+
+string TestLinq()
+{
+	List<string> codes = new List<string>
+	{
+		"A",
+		"B",
+		"C"
+	};
+
+	return codes.FirstOrDefault();
 }

@@ -21,13 +21,17 @@ namespace CsTask.Data
 
 		public SyntaxTree Syntax { get; set; }
 
+		public List<string> ReferencedAssemblies { get; set; }
+
 		public CsTaskFile(string path)
 		{
 			Path = path;
 			Name = System.IO.Path.GetFileNameWithoutExtension(Path);
 			Code = File.ReadAllText(path);
 
-			CodeReader.Read(Code, out string rawCode);
+			//TODO: Find file in cache and pass assemblies in
+			var file = CodeReader.Read(Path, Code,null, out string rawCode);
+			ReferencedAssemblies = file.ReferencedAssemblies;
 			Code = rawCode;
 		}
 

@@ -101,6 +101,13 @@ namespace CsTask
 				catch (Exception ex)
 				{
 					Console.Error.WriteLine(ex.Message);
+					Exception wEx = ex;
+					while (wEx.InnerException != null)
+					{
+						Console.Error.WriteLine(wEx.InnerException.Message);
+						wEx = wEx.InnerException;
+					}
+
 					Console.Error.WriteLine($"Exit Code = -3; \"Command {command.Name} could not be run\"");
 
 #if DEBUG
@@ -143,7 +150,7 @@ namespace CsTask
 		private static CompiledFile CompileAssembly()
 		{
 			string joinedCode = string.Join(Environment.NewLine, Files.Select(x => x.Code));
-			return CodeReader.Read(joinedCode, out string rawCode);
+			return CodeReader.Read(null,joinedCode, Files.SelectMany(x => x.ReferencedAssemblies).ToList(), out string rawCode);
 		}
 
 		private static Dictionary<string, (int order, MemberInfo member)> FindCommands(CompiledFile compiledFile)

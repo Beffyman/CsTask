@@ -13,20 +13,24 @@ using System.Text;
 
 namespace CsTask
 {
-    public static class CodeReader
-    {
+	public static class CodeReader
+	{
 
-		public static CompiledFile Read(string Code, out string RawCode)
+		public static CompiledFile Read(string fileName,string Code,List<string> foundAssemblies, out string RawCode)
 		{
 			string Name = $"CsTask{Guid.NewGuid().ToString().Replace("-", "")}";
 			RawCode = Code;
 			CompiledFile file = new CompiledFile();
+			file.Name = fileName;
 
 			SyntaxTree syntax = null;
 			bool retry = false;
+			bool wrapStatic = false;
+			file.ReferencedAssemblies = foundAssemblies ?? new List<string>();
 
 			RETRY:
 
+			file.ReferencedAssemblies = file.ReferencedAssemblies.Distinct().ToList();
 
 			if (retry)//Failed and a CS0116 error, retry with wrapping in static classs
 			{
@@ -92,7 +96,9 @@ namespace CsTask
 					fullTxt = fullTxt.Replace(usings, "");
 				}
 
-				Code =
+				if (wrapStatic)
+				{
+					Code =
 $@"
 {usings}
 
@@ -103,17 +109,38 @@ static class {Name}{{
 }}
 
 ";
+				}
+				else
+				{
+					Code =
+$@"
+{usings}
+
+{fullTxt}
+
+
+";
+
+				}
+
+				wrapStatic = false;
+				retry = false;
 			}
 
 
 			syntax = CSharpSyntaxTree.ParseText(Code);
 
-			MetadataReference[] references = new MetadataReference[]
+			List<MetadataReference> references = new List<MetadataReference>
 			{
 				MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
 				MetadataReference.CreateFromFile(typeof(Enumerable).GetTypeInfo().Assembly.Location)
 			};
 
+			foreach (var ass in file.ReferencedAssemblies)
+			{
+				Assembly loaded = AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(ass));
+				references.Add(MetadataReference.CreateFromFile(loaded.Location));
+			}
 
 			CSharpCompilation compilation = CSharpCompilation.Create(
 				Name,
@@ -127,15 +154,36 @@ static class {Name}{{
 
 				if (!result.Success)
 				{
-					if (!retry && result.Diagnostics.Any(x => x.ToString().Contains("CS0116")))//Failed and a CS0116 error, retry with wrapping in static classs
+					if (result.Diagnostics.Any(x => x.ToString().Contains("CS0116")))//Failed and a CS0116 error, retry with wrapping in static classs
 					{
+						wrapStatic = true;
 						retry = true;
-						goto RETRY;
 					}
 
 					IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic =>
 						diagnostic.IsWarningAsError ||
 						diagnostic.Severity == DiagnosticSeverity.Error);
+
+					if (failures.Any(x => x.Id == "CS0012"))
+					{
+						var infoMember = failures.FirstOrDefault().GetType().GetMembers().SingleOrDefault(x => x.Name == "get_Info") as MethodInfo;
+						var argumentField = infoMember.ReturnType.GetTypeInfo().GetDeclaredField("_arguments");
+						var errorAssemblies = failures.Where(x => x.Id == "CS0012").ToList();
+						foreach (var ass in errorAssemblies)
+						{
+							object info = infoMember.Invoke(ass, null);
+							object[] arguments = argumentField.GetValue(info) as object[];
+							var assemblyName = arguments[1].ToString();
+							file.ReferencedAssemblies.Add(assemblyName);
+						}
+
+						retry = true;
+					}
+
+					if (retry)
+					{
+						goto RETRY;
+					}
 
 					foreach (Diagnostic diagnostic in failures)
 					{
