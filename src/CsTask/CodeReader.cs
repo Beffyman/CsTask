@@ -10,6 +10,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CsTask
 {
@@ -133,7 +134,8 @@ $@"
 			List<MetadataReference> references = new List<MetadataReference>
 			{
 				MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
-				MetadataReference.CreateFromFile(typeof(Enumerable).GetTypeInfo().Assembly.Location)
+				MetadataReference.CreateFromFile(typeof(Enumerable).GetTypeInfo().Assembly.Location),
+				MetadataReference.CreateFromFile(typeof(Regex).GetTypeInfo().Assembly.Location)
 			};
 
 			foreach (var ass in file.ReferencedAssemblies)

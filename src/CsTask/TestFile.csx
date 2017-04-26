@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Runtime;
+using System.Text.RegularExpressions;
 
 
 //Base Members
@@ -92,4 +93,15 @@ string TestLinq()
 	};
 
 	return codes.FirstOrDefault();
+}
+
+//Regex Test
+
+string TestRegex()
+{
+	string hostFileTest = "255.125.254.444    TEST";
+	Regex reg = new Regex(@"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+(\S+)");
+
+	var match = reg.Match(hostFileTest);
+	return match.Value;
 }
